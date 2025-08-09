@@ -1,1 +1,1 @@
-# notes_qft_aqft
+# Notes on the quantum Fourier transform and the approximate quantum Fourier transform
