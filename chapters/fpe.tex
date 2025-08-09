@@ -1,0 +1,196 @@
+% L'input de FPE est psi(j) mais inversé vu que les swaps ne sont pas faites dans la qfs.
+\newpage
+\section{Fourier phase estimation (FPE)}
+\subsection{Exact FPE}
+The Fourier phase estimation (FPE) performs the following operation between two registers $A$ and $B$ both containing $n$ qubits :
+
+\begin{equation}
+    \ket{b}_A\ket{\phi(j)}_B \xrightarrow{\text{FPE}_{AB}} \ket{b \oplus j}_A\ket{\phi(j)}_B
+    \label{def_fpe}
+\end{equation}
+
+Here, $\oplus$ is the mod 2 addition (XOR) and we will focus on the case $b=j$.
+
+\begin{equation}
+    \ket{j}_A\ket{\phi(j)}_B \xrightarrow{\text{FPE}_{AB}} \ket{j \oplus j}_A\ket{\phi(j)}_B = \ket{0}_A\ket{\phi(j)}_B
+    \label{def_fpe_b_equals_j}
+\end{equation}
+
+To do this operation, we could start by applying the inverse QFT on the register $B$. Then, for all $l$, use a CNOT to perform a mod 2 addition between the $l$-th qubit of each register. The $l$-th qubit in the register $A$ will be the target of that CNOT and the $l$-th qubit in the register $B$ will control it. Finally, all that is left would be to apply the QFT on the register $B$ to bring it back in the Fourier basis.
+
+\begin{equation*}
+    \ket{j}_A\ket{\phi(j)}_B \xrightarrow{\text{QFT}^{\dagger}_B} \ket{j}_A\ket{j}_B \xrightarrow{\text{CNOTs}_{A,B}} \ket{j \oplus j}_A\ket{j}_B = \ket{0}_A\ket{j}_B \xrightarrow{\text{QFT}_B} \ket{0}_A\ket{\phi(j)}_B
+\end{equation*}
+
+\subsection{Approximate FPE}
+To do \ref{def_fpe_b_equals_j} approximately, we use will the circuit proposed in \cite{bäumer2025approximatequantumfouriertransform} :
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.55]{images/fpe.png}
+    \caption{Quantum circuit for the approximate FPE}
+    \label{circuit_fpe}
+\end{figure}
+
+Rather than applying one big QFT like in the exact FPE, the approximate FPE tries to estimate some of the bits of $j$ on the register $B$ using smaller but exact QFT$^{\dagger}$s. Again, after that, CNOTs are used to reset the bits of $j$ in the register $A$ that just got estimated on the register $B$. Finally, smaller but exact QFTs are performed to put the register $B$ back in the Fourier basis. Since only some of the bits of $j$ in the register $A$ are reset, we will need to repeat this operation more than once to completely reset the register $A$. 
+
+\subsubsection{Derivation}
+First of all, suppose that $2k|n$. Then, according to the figure \ref{circuit_fpe}, we have to start by performing $\frac{n}{2k}$ QFT$^{\dagger}$s that are applied on $2k$ qubits of the register $B$. Therefore, there are $\frac{n}{2k}$ groups of $2k$ qubits which we index by $m \in \{0, ..., \frac{n}{2k}-1\}$. In each group, the first and last $k$ qubits have indices 
+
+\begin{equation*}
+    (\textbf{q}^{'}_m, \textbf{q}_{m}) = \left(\left(n-2km-1, ..., n-2km-k\right), \left(n-2km-k-1, n-2km-2k\right)\right)
+    % \left(\left(k\left(\frac{n}{k}-2m\right)-1, ..., k\left(\frac{n}{k}-2m-1\right)\right), \left(k\left(\frac{n}{k}-2m-1\right)-1, ..., k\left(\frac{n}{k}-2m-2\right)\right)\right)    
+\end{equation*}
+
+respectively since the first qubit of $\ket{\phi(j)}_B$ is $\ket{\phi(j)_{n-1}}_B$, then $\ket{\phi(j)_{n-2}}_B$ for the second qubit and so on. So, in the register $B$, each group corresponds to the state 
+
+\begin{equation*}
+    \ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \bigotimes_{l=n-2km-2k}^{n-2km-1}\left(\frac{\ket{0}_B+e^{i2\pi j/2^{n-l}}\ket{1}_B}{\sqrt{2}}\right) = \frac{1}{2^k}\bigotimes_{l=0}^{2k-1}\left(\ket{0}_B + e^{i2\pi j/2^{-l+2km+2k}}\ket{1}_B\right)
+\end{equation*}
+\begin{equation*}
+    = \frac{1}{2^k}\sum_{r_{2k-1}=0}^{1}...\sum_{r_0=0}^{1}e^{i2\pi j \sum_{l=0}^{2k-1}r_l2^l / 2^{2km+2k}}\ket{r_{2k-1}...r_0}_B = \frac{1}{2^k}\sum_{r=0}^{2^{2k}-1}e^{i2\pi jr/2^{2km+2k}} \ket{r}_B
+\end{equation*}
+
+Then, if we apply a QFT$^{\dagger}$ on $2k$ qubits on this state,
+
+\begin{equation*}
+    \text{QFT}^{\dagger}_{2k}\ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \frac{1}{2^k}\sum_{r=0}^{2^{2k}-1}e^{i2\pi jr/2^{2km+2k}} \text{QFT}^\dagger_{2k}\ket{r}_B = \frac{1}{2^{2k}}\sum_{x=0}^{2^{2k}-1}\sum_{r=0}^{2^{2k}-1}e^{i\frac{2\pi}{2^{2k}}r(j2^{-2km}-x)}\ket{x}_B
+\end{equation*}
+\begin{equation}
+    = \frac{1}{2^{2k}}\sum_{x=0}^{2^{2k}-1}\frac{1 - e^{i 2\pi(j2^{-2km}-x)}}{1 - e^{i \frac{2\pi}{2^{2k}}(j2^{-2km}-x)}}\ket{x}_B = \sum_{x=0}^{2^{2k}-1}\gamma_x^{j_m}\ket{x}_B
+    \label{qft_dag_fpe}
+\end{equation}
+
+where we have used a geometric series. From that point, multiple outcomes are possible. First, if $j$ is a multiple of $2^{-2km}$, it results that $j2^{-2km} = j_{n-1}...j_{2km}\textbf{.}0...0 = j_{n-1}...j_{2km}$ is also an integer. In that case,
+
+\begin{equation*}
+    \text{QFT}^{\dagger}_{2k}\ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \frac{1}{2^{2k}}\sum_{x=0}^{2^{2k}-1}\frac{1 - e^{i2\pi(j_{n-1}...j_{2km} - x_{2k-1}...x_0)}}{1-e^{i\frac{2\pi}{2^{2k}}(j_{n-1}..j_{2km}-x_{2k-1}...x_0)}} \ket{x}_B
+\end{equation*}
+\begin{equation*}
+    = \frac{1}{2^{2k}}\sum_{x=0}^{2^{2k}-1}\frac{0}{1-e^{i2\pi(0\textbf{.}j_{2km+2k-1}...j_{2km} - 0\textbf{.}x_{2k-1}...x_0)}} \ket{x}_B = \frac{1}{2^{2k}}\sum_{x=0}^{2^{2k}-1}\frac{0}{1-e^{i\frac{2\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}-x)}}\ket{x}_B
+\end{equation*}
+
+The term in the sum is 0 when $j_{2km+2k-1}...j_{2km} \neq x$. Otherwise, when $j_{2km+2k-1}...j_{2km} = x$, we can go further back in the equations of \ref{qft_dag_fpe} to treat it separately and find that the final state is $\ket{j_{2km+2k-1}...j_{2km}}$. So, in that case,
+
+\begin{equation*}
+    \text{QFT}^{\dagger}_{2k}\ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \ket{j_{2km+2k-1}...j_{2km}}_B = \ket{(\textbf{j}^{'}_m, \textbf{j}_m)}_B
+\end{equation*}
+
+Since $j$ will always be multiple of $2^{-2km}$ when $m=0$, we are sure to obtain $\ket{j_{2k-1}...j_0}_B$ on the first $2k$ qubits of the register $B$. This is why the top left group in figure \ref{circuit_fpe} has CNOTs on all qubits. On the other end, if $j$ is not a multiple of $2^{-2km}$, we can't simplify \ref{qft_dag_fpe} further. With that knowledge, we try to estimate the last $k$ bits of the group, that is $(\textbf{j}^{'}_m)$. For that, rewtite \ref{qft_dag_fpe} so that $(\textbf{j}^{'}_m)$ is in evidence.
+
+\begin{equation*}
+    \text{QFT}^{\dagger}_{2k}\ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \sum_{x_0 = 0}^{2^k-1}\gamma^{j_m}_{(\textbf{j}^{'}_m, x_0)} \ket{(\textbf{j}^{'}_m, x_0)}_B + \sum_{x_1 \neq \textbf{j}^{'}_m}^{2^k-1}\sum_{x_0=0}^{2^k-1}\gamma^{j_m}_{(x_1,x_0)}\ket{(x_1,x_0)}_B 
+\end{equation*}
+
+The state on the left is what we aim to get beacause it gives us the last $k$ bits of the group $(\textbf{j}^{'}_m)$. The state on the right gives a garbage state that we don't care about. Define
+
+\begin{equation*}
+    \sum_{x_0=0}^{2^k-1}\gamma_{(\textbf{j}^{'}_m,x_0)}^{j_m}\ket{x_0}_B = \sqrt{1 - \varepsilon_{\textbf{j}^{'}_m}}\ket{a_{\textbf{j}^{'}_m}}_B
+\end{equation*}
+
+Then, 
+
+\begin{equation*}
+    \text{QFT}^{\dagger}_{2k}\ket{\phi(j)_{(\textbf{q}^{'}_m, \textbf{q}_{m})}}_{B} = \sqrt{1 - \varepsilon_{\textbf{j}^{'}_m}}\ket{\textbf{j}^{'}_m}_B\ket{a_{\textbf{j}^{'}_m}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}_m}}\ket{\perp_{2k}^{\textbf{j}^{'}_m}}_B
+\end{equation*}
+
+tells us we have a probability $1- \varepsilon_{\textbf{j}^{'}_m}$ of getting the state estimating the last $k$ bits of the group and a probability $ \varepsilon_{\textbf{j}^{'}_m}$ of getting the garbage state on $2k$ qubits which is orthogonal to what is on the left of the sum. With that,
+
+\begin{equation*}
+    \left(\text{QFT}^{\dagger}_{2k}\right)^{\otimes \frac{n}{2k}}_B\ket{\phi(j)}_B = \bigotimes_{m=0}^{\frac{n}{2k}-1}\left(\sqrt{1 - \varepsilon_{\textbf{j}^{'}_m}}\ket{\textbf{j}^{'}_m}_B\ket{a_{\textbf{j}^{'}_m}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}_m}}\ket{\perp_{2k}^{\textbf{j}^{'}_m}}_B\right) 
+\end{equation*}
+\begin{equation}
+    = \sqrt{1-\varepsilon_{\textbf{j}^{'}}} \bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{\textbf{j}^{'}_m}_B\ket{a_{\textbf{j}^{'}_m}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\ket{\perp_{n}^{\textbf{j}^{'}}}_B
+    \label{state_fpe_after_first_layer_of_qft_dagger}
+\end{equation}
+
+where we have defined $\ket{\perp_{n}^{\textbf{j}^{'}}}_B$ to be the resulting garbage state orthogonal to what is on the left of the sum that's now on $n$ qubits and $\varepsilon_{\textbf{j}^{'}} = 1 - \prod_{m=0}^{\frac{n}{2k}-1}\left(1-\varepsilon_{\textbf{j}^{'}_m}\right)$ as the new probability of obtaining the garbage state. From that, we can apply CNOTs controlled by the last $k$ qubits in each group of the register $B$ to reset the corresponding qubits in the register $A$ like in figure \ref{circuit_fpe}.
+
+\begin{equation*}
+    \left(\text{QFT}^{\dagger}_{2k}\right)^{\otimes \frac{n}{2k}}_B\ket{j}_A\ket{\phi(j)}_B = \sqrt{1 - \varepsilon_{\textbf{j}^{'}}}\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{\textbf{j}_m^{'}}_A\ket{\textbf{j}_m}_A\ket{\textbf{j}_m^{'}}_B\ket{a_{\textbf{j}_m^{'}}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\ket{j}_A\ket{\perp_{n}^{\textbf{j}^{'}}}_B
+\end{equation*}
+\begin{equation*}
+    \xrightarrow{\text{CNOTs}_{A,B}} \sqrt{1 - \varepsilon_{\textbf{j}^{'}}}\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{\textbf{j}_m^{'} \oplus \textbf{j}_m^{'}}_A\ket{\textbf{j}_m}_A\ket{\textbf{j}_m^{'}}_B\ket{a_{\textbf{j}_m^{'}}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\ket{\perp_{2n}^{(0,\textbf{j}^{'})}}_{A,B}
+\end{equation*}
+\begin{equation*}
+    = \sqrt{1 - \varepsilon_{\textbf{j}^{'}}}\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{0}_A\ket{\textbf{j}_m}_A\ket{\textbf{j}_m^{'}}_B\ket{a_{\textbf{j}_m^{'}}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\ket{\perp_{2n}^{(0,\textbf{j}^{'})}}_{A,B}
+\end{equation*}
+
+So, 
+
+\begin{equation}
+    \left(\text{CNOT}\right)_{A,B}^{\otimes \frac{n}{2k}}\left(\text{QFT}^{\dagger}_{2k}\right)_B^{\otimes \frac{n}{2k}} \ket{j}_A\ket{\phi(j)}_B  = \sqrt{1 - \varepsilon_{\textbf{j}^{'}}}\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{0}_A\ket{\textbf{j}_m}_A\ket{\textbf{j}_m^{'}}_B\ket{a_{\textbf{j}_m^{'}}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\ket{\perp_{2n}^{(0,\textbf{j}^{'})}}_{A,B}
+    \label{state_fpe_after_first_layer_of_cnots}
+\end{equation}
+
+Then, figure \ref{circuit_fpe} tells us we have to apply $\text{QFT}_{2k}$ on all groups to complete $\text{FPE}^{(\varepsilon)}_{1/2}$ the first half of the approximate FPE.
+
+\begin{equation*}
+    \text{FPE}^{(\varepsilon)}_{1/2}\ket{j}_A\ket{\phi(j)}_B = \left(\text{QFT}_{2k}\right)_B^{\otimes \frac{n}{2k}}\left(\text{CNOT}\right)_{A,B}^{\otimes \frac{n}{2k}}\left(\text{QFT}^{\dagger}_{2k}\right)_B^{\otimes \frac{n}{2k}} \ket{j}_A\ket{\phi(j)}_B
+\end{equation*}
+\begin{equation*}
+    = \sqrt{1 - \varepsilon_{\textbf{j}^{'}}}\left(\text{QFT}_{2k}\right)_B^{\otimes \frac{n}{2k}}\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{0}_A\ket{\textbf{j}_m}_A\ket{\textbf{j}_m^{'}}_B\ket{a_{\textbf{j}_m^{'}}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\left(\text{QFT}_{2k}\right)_B^{\otimes \frac{n}{2k}}\ket{\perp_{2n}^{(0,\textbf{j}^{'})}}_{A,B}
+\end{equation*}
+
+Using \ref{state_fpe_after_first_layer_of_qft_dagger}, we can apply $\left(\text{QFT}_{2k}\right)^{\otimes \frac{n}{2k}}_B$ on both sides to say that
+
+\begin{equation*}
+    \ket{\phi(j)}_B = \sqrt{1-\varepsilon_{\textbf{j}^{'}}} \left(\text{QFT}_{2k}\right)^{\otimes \frac{n}{2k}}_B\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{\textbf{j}^{'}_m}_B\ket{a_{\textbf{j}^{'}_m}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\left(\text{QFT}_{2k}\right)^{\otimes \frac{n}{2k}}_B\ket{\perp_{n}^{\textbf{j}^{'}}}_B
+\end{equation*}
+\begin{equation*}
+    \implies \sqrt{1-\varepsilon_{\textbf{j}^{'}}} \left(\text{QFT}_{2k}\right)^{\otimes \frac{n}{2k}}_B\bigotimes_{m=0}^{\frac{n}{2k}-1}\ket{\textbf{j}^{'}_m}_B\ket{a_{\textbf{j}^{'}_m}}_B = \ket{\phi(j)}_B - \sqrt{\varepsilon_{\textbf{j}^{'}}}\left(\text{QFT}_{2k}\right)^{\otimes \frac{n}{2k}}_B\ket{\perp_{n}^{\textbf{j}^{'}}}_B
+\end{equation*}
+\begin{equation*}
+    = \left(1 - \varepsilon_{\textbf{j}^{'}}\right)\ket{\phi(j)}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}\left(1 - \varepsilon_{\textbf{j}^{'}}\right)}\ket{\perp_n^{\phi(j)}}_B
+\end{equation*}
+
+because of the normalization. We can substitute this in $\text{FPE}^{(\varepsilon)}_{1/2}$. 
+
+\begin{equation*}
+     \text{FPE}^{(\varepsilon)}_{1/2}\ket{j}_A\ket{\phi(j)}_B = \left(\text{QFT}_{2k}\right)_B^{\otimes \frac{n}{2k}}\left(\text{CNOT}\right)_{A,B}^{\otimes \frac{n}{2k}}\left(\text{QFT}^{\dagger}_{2k}\right)_B^{\otimes \frac{n}{2k}} \ket{j}_A\ket{\phi(j)}_B
+\end{equation*}
+\begin{equation*}
+    = \left(1 - \varepsilon_{\textbf{j}^{'}}\right)\bigotimes_{m=0}^{\frac{n}{2k}-1}\left(\ket{0}_A\ket{\textbf{j}_m}_A\right)\ket{\phi(j)}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}\left(1 - \varepsilon_{\textbf{j}^{'}}\right)}\bigotimes_{m=0}^{\frac{n}{2k}-1}\left(\ket{0}_A\ket{\textbf{j}_m}_A\right)\ket{\perp_n^{\phi(j)}}_B + \sqrt{\varepsilon_{\textbf{j}^{'}}}\left(\text{QFT}_{2k}\right)_B^{\otimes \frac{n}{2k}}\ket{\perp_{2n}^{(0, \textbf{j}^{'})}}_{A,B}
+\end{equation*}
+\begin{equation*}
+    = \left(1 - \varepsilon_{\textbf{j}^{'}}\right)\bigotimes_{m=0}^{\frac{n}{2k}-1}\left(\ket{0}_A\ket{\textbf{j}_m}_A\right)\ket{\phi(j)}_B + \sqrt{2\varepsilon_{\textbf{j}^{'}} - \varepsilon_{\textbf{j}^{'}}^2}\ket{\perp_{2n}^{\text{FPE}_{1/2}}}_B
+    \label{state_fpe_after_first_layer}
+\end{equation*}
+
+Now, we need to reset the remaining qubits in the register $A$ which we can done by repeating the operations we just did but shifted down by $k$ qubits. This yields
+
+\begin{equation}
+    \text{FPE}^{(\varepsilon)}\ket{j}_A\ket{\phi(j)}_B = \left(1-\varepsilon\right)\ket{0}_A\ket{\phi(j)}_B + \sqrt{2\varepsilon - \varepsilon^2}\ket{\perp_{2n}^{\text{FPE}}}_B
+    \label{final_state_fpe}
+\end{equation}
+
+\subsubsection{Implementation details}
+The QFTs/QFT$^{\dagger}$ on $2k$ qubits used in figure \ref{circuit_fpe} can be done on a line with $\mathcal{O}(k^2)$ gates and a depth of $\mathcal{O}(k)$ as shown in section 2. Therefore, the approximate FPE has a linear depth in $k$. In \cite{bäumer2025approximatequantumfouriertransform}, they show that for $\frac{1}{\text{poly}(n)} \leq \varepsilon < 1$, the approximated FPE can be made  $\varepsilon$ close to the exact FPE with $2n$ qubits on a line with a depth of $\mathcal{O}(\log\left(\frac{n}{\varepsilon^2}\right))$ by choosing $k = \mathcal{O}(\log\left(\frac{n}{\varepsilon^2}\right))$. This is valid for states in
+
+\begin{equation}
+    \mathcal{T}_{\text{uni}^{(p)}} = \left\{\ket{\psi}_{ABE} \in \mathcal{H}_{ABE} : \ket{\psi}_{ABE} = \sum_{j=0}^{2^n -1}\sum_{m=0}^{M-1}\beta_{j,m}\ket{j}_A\ket{\phi(j)}_B\ket{m}_E, \abs{\sum_{m}\beta_{j,m}\beta^{*}_{l,m}} \leq \frac{p(n)}{N}\delta_{j,l} \forall j,l\right\}
+    \label{eq_t_uni}
+\end{equation}
+
+where $p(n)$ is a polynomial in $n$ with fixed degree independent of $n$ and $\delta_{j,l}$ is the Kronecker delta.
+
+\subsubsection{Bounds}
+% \begin{equation*}
+%     e^{i\frac{2\pi}{2^{2k}}r(j2^{-2km}-x)} = e^{i\frac{2\pi}{2^{2k}}r (j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)} = e^{i\frac{2\pi}{2^{2k}}r \left((\vec{j}_{\vec{q}_{2m+1}}, \vec{j}_{\vec{q}_{2m}}) + \delta_{j_{2m+1}}-x\right)} 
+% \end{equation*}
+
+% where $\delta_{j_{2m+1}} \in (0,1)$ is the fractional part and we can't simplify \ref{qft_dag_fpe} further. 
+
+We can bound 
+
+\begin{equation*}
+    \abs{\gamma_{x}^{j_m}} = \frac{1}{2^{2k}}\frac{\abs{1 - e^{i2\pi(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)}}}{\abs{1 - e^{i\frac{2\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)}}} = \frac{1}{2^{2k}}\frac{\sqrt{2-2\cos\left(2\pi(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}{\sqrt{2-2\cos\left(\frac{2\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}
+\end{equation*}
+\begin{equation*}
+    = \frac{1}{2^{2k}}\frac{\sqrt{2\sin^2\left(\pi(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}{\sqrt{2\sin^2\left(\frac{\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}} = \frac{1}{2^{2k}}\frac{\abs{\sin\left(\pi(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}{\abs{\sin\left(\frac{\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}
+\end{equation*}
+\begin{equation*}
+    \leq \frac{1}{2^{2k}}\frac{1}{\abs{\sin\left(\frac{\pi}{2^{2k}}(j_{2km+2k-1}...j_{2km}\textbf{.}j_{2km-1}...j_0-x)\right)}}
+\end{equation*}
+
+where some trigonometric identities were employed.

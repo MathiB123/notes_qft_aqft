@@ -1,0 +1,173 @@
+\newpage
+\section{Approximate QFT (AQFT)}
+When the number of qubits $n$ becomes very large, some of the phase gates $R_k$ will add a negligible phase to the quantum state. For the $l$-th qubit, the gates $CR_2, ... CR_{l+1}$ are applied, so in some cases the subscripts become large. When this happens, the added phase $e^{i 2\pi / 2^k}$ will be very close to 1. In that case, it is computationally interesting to see if an approximate version of the QFT (AQFT) is possible, where gates that add a negligible phase are removed from the circuit. 
+
+\subsection{Derivation}
+We rewrite (\ref{def_qft}) with both $j$ and $k$ in binary notation,
+
+\begin{equation}
+    \text{QFT}\ket{j} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n - 1}e^{i \frac{2\pi}{2^n}\sum_{m=0}^{n-1}\sum_{l=0}^{n-1}j_mk_l 2^{l+m}} \ket{k} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n - 1}e^{i \frac{2\pi}{2^n}\sum_{0\leq m,l \leq n-1, 0 \leq l+m \leq n-1}j_mk_l 2^{l+m}} \ket{k}
+    \label{full_qft}
+\end{equation}
+
+because $e^{i\frac{2\pi}{2^n}j_mk_l2^{l+m}} = 1$ when $l+m \geq n$. This corresponds to the full QFT where all gates are present. Now, we check what happens when we remove all controlled phase gates from the circuit so that we are only left with Hadamard and SWAP gates. This yields the state
+
+\begin{equation*}
+    \text{SWAPs}\left(H^{\bigotimes n}\ket{j}\right) = \frac{1}{\sqrt{2^n}}\left(\ket{0...0} + (-1)^{j_0}\ket{10...0} + ... + (-1)^{j_{n-1}+...+j_0}\ket{1...1}\right) 
+\end{equation*}
+\begin{equation*}
+    = \frac{1}{\sqrt{2^n}} \sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}\sum_{m=0}^{n-1}j_m k_{n-1-m}2^{n-1}}\ket{k} = \frac{1}{\sqrt{2^n}} \sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}\sum_{0\leq m,l \leq n-1, l+m = n-1}j_m k_l 2^{l+m}}\ket{k} 
+\end{equation*}
+\begin{equation}
+    = \frac{1}{\sqrt{2^n}} \sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}\sum_{0\leq m,l \leq n-1, n-1 \leq l+m \leq n-1}j_m k_l 2^{l+m}}\ket{k}
+    \label{hadamard_transform}
+\end{equation}
+
+where "SWAPs" is the final sequence of SWAPs in figure \ref{qft_circuit_3_qubits}. (\ref{full_qft}) and (\ref{hadamard_transform}) are two extreme cases of the AQFT where (\ref{full_qft}) corresponds to the full QFT and (\ref{hadamard_transform}) is a totally incomplete QFT. In the sum of the argument, the full QFT has the constraint $0 \leq l+m \leq n-1$ and the incomplete one has the constraint $n-1 \leq l+m \leq n-1$. Naturally, to transition from one extreme to the other, it would make sense to define the AQFT with an integer parameter $k_{\text{max}}$ (AQFT$_{k_\text{max}}$) like so.
+
+\begin{equation}
+    \text{AQFT}_{k_{\text{max}}}\ket{j} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n - 1}e^{i\frac{2\pi}{2^n}\sum_{0 \leq m,l \leq n-1, n-k_{\text{max}} \leq l+m \leq n-1} j_mk_l 2^{l+m}}\ket{k}
+    \label{AQFT}
+\end{equation}
+
+When $k_{\text{max}} = n$, we obtain the full QFT and, when $k_{\text{max}} = 1$, we get the totally incomplete QFT. But in between, to have a smooth transition between the two extremes, we hope that (\ref{AQFT}) gives the QFT where all $R_k$ gates such that $k>k_{\text{max}}$ are removed from the circuit. We can verify that by simply applying the constraint $n-k_{\text{max}} \leq l+m \leq n-1$ to the full QFT and extending the equation. First, by (\ref{qft_product_state}), 
+
+\begin{equation}
+    \text{QFT}\ket{j} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{2\pi i \sum_{m=0}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}}\right)
+    \label{qft_n_minus_l_convention}
+\end{equation}
+
+where
+
+\begin{equation}
+    \ket{j_l} \xrightarrow{\text{QFT}} \ket{\phi(j)_{n-l-1}} = \frac{\ket{0} + e^{2\pi i \sum_{m=0}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}} 
+    \label{qft_n_minus_l_convention_one_qubit}
+\end{equation}
+
+Then, we consider the previous constraint $n-k_{\text{max}} \leq l+m \leq n-1$, which is the same as $n-k_{\text{max}}-l \leq m \leq n-l-1$. This gives us bounds on the range of values $m$ can take in the sum of (\ref{qft_n_minus_l_convention_one_qubit}). Therefore, if $l$ is small enough, we will have $0 < n-k_{\text{max}}-l \leq m \leq n-l-1$ and (\ref{qft_n_minus_l_convention_one_qubit}) changes to
+
+\begin{equation*}
+    \frac{\ket{0} + e^{2\pi i \sum_{m=n-k_{\text{max}}-l}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}} = \frac{\ket{0} + e^{2\pi i \left(j_{n-l-1}2^{-1} + ... + j_{n-k_{\text{max}}-l}2^{-k_{\text{max}}}\right)}\ket{1}}{\sqrt{2}} = \frac{\ket{0} + e^{2\pi i \ 0\textbf{.}j_{n-l-1}...j_{n-k_{\text{max}}-l}}\ket{1}}{\sqrt{2}}
+\end{equation*}
+
+As we see, the phase gates will not go further than $R_{k_{\text{max}}}$. This makes sense, because when $l$ is small enough, there will be a lot of bits in the decimal number $0\textbf{.}j_{n-l-1}...j_0$, which will require phase gates $R_k$ with high values of $k$ that we want to remove in the approximate QFT. The other case is when $l$ is large enough that $n-k_{\text{max}}-l \leq 0$ and the original range in the sum of (\ref{qft_n_minus_l_convention_one_qubit}) doesn't need to be truncated. This is due to the fact that $0\textbf{.}j_{n-l-1}...j_0$ will not contain that many bits, so the phase gates used will respect the threshold and nothing gets removed. Overall, the AQFT$_{k_{\text{max}}}$ defined above behaves the way we want.
+
+Instead of looking at both cases when $l$ is small or large enough, we can derive a general equation for AQFT$_{k_\text{max}}$ that encapsulates everything and doesn't explicitly tell us to take into consideration some constraint. We know that when a qubit needs gates to be removed, that is when $n-k_{\text{max}}-l > 0$, it is described by 
+
+\begin{equation*}
+    \frac{\ket{0} + e^{2\pi i \sum_{m=n-k_{\text{max}}-l}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}}
+\end{equation*}
+
+Also, when $n-k_{\text{max}}-l \leq 0$, no gates are removed and we always get
+
+\begin{equation*}
+    \frac{\ket{0} + e^{2\pi i \sum_{m=0}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}} 
+\end{equation*}
+
+for such a qubit. In this last case, we can extend the summation's lower bound to $n-k_{\text{max}}-l$ in order to match the equation where gates are removed. If we do that, the sum will partially be on indices of $j$ that are negative, which are bits for the decimals positions. Since $j$ is an integer, those indices all have the value 0 and they don't contribute anything to the phase. Therefore,
+
+\begin{equation*}
+    \frac{\ket{0} + e^{2\pi i \sum_{m=n-k_{\text{max}}-l}^{n-l-1} j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}}
+\end{equation*}
+
+can be used to describe all qubits and the AQFT$_{k_{\text{max}}}$ is rewritten as 
+
+\begin{equation*}
+    \text{AQFT}_{k_{\text{max}}}\ket{j} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{i 2\pi \sum_{m = n-k_{\text{max}}-l}^{n-l-1}j_m2^{l+m}/2^n}\ket{1}}{\sqrt{2}}\right) = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i \frac{2\pi}{2^n} \sum_{l=0}^{n-1}\sum_{m=n-k_{\text{max}}-l}^{n-1-l}j_mk_l2^{l+m}}\ket{k}
+\end{equation*}
+
+Finally, we can show that $\sum_{l=0}^{n-1}\sum_{m=n-k_{\text{max}}-l}^{n-1-l}j_mk_l2^{l+m} = \sum_{m=0}^{n-1}\sum_{l=n-k_{\text{max}}-m}^{n-1-m}j_mk_l2^{l+m}$ by deleting the negative indices for $j$, adding negative indices for $k$ (which all have the value 0 because $k$ is also an integer) and reordering the sums. 
+
+\begin{equation}
+    \text{AQFT}_{k_{\text{max}}}\ket{j} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i \frac{2\pi}{2^n} \sum_{m=0}^{n-1}\sum_{l=n-k_{\text{max}}-m}^{n-1-m}j_mk_l2^{l+m}}\ket{k}
+    \label{AQFT_no_constraint}
+\end{equation}
+
+To write the QFT in a similar fashion, we set $k_{\text{max}} = n$ in (\ref{AQFT_no_constraint}). Since negative indices of $k$ have the value 0, we delete them from the sum.
+
+\begin{equation}
+    \text{QFT}\ket{j} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i \frac{2\pi}{2^n} \sum_{m=0}^{n-1}\sum_{l=-m}^{n-1-m}j_mk_l2^{l+m}}\ket{k} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i \frac{2\pi}{2^n} \sum_{m=0}^{n-1}\sum_{l=0}^{n-1-m}j_mk_l2^{l+m}}\ket{k}
+    \label{QFT_from_AQFT} 
+\end{equation}
+
+\subsection{Implementation with a quantum circuit}
+To build a quantum circuit for the AQFT$_{k_{\text{max}}}$, we simply take the circuit for the exact QFT and remove all gates $R_k$ where $k > k_{\text{max}}$.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+\lstick{$\ket{j_0}$} & &  & & \ctrl{1} & \gate[1]{H} & \swap{2} & \rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_2j_1}\ket{1}}{\sqrt{2}}$}\\
+\lstick{$\ket{j_1}$} & & \ctrl{1} & \gate[1]{H} & \gate[1]{R_2} & &  &\rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_1j_0}\ket{1}}{\sqrt{2}}$}\\
+\lstick{$\ket{j_2}$} & \gate[1]{H} & \gate[1]{R_2} & & & & \targX{} &\rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_0}\ket{1}}{\sqrt{2}}$}\\
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the AQFT with $k_{\text{max}}=2$ on $n=3$ qubits}
+    \label{aqft_circuit_3_qubits}
+\end{figure}
+\end{center}
+
+Normally, the first output in figure \ref{aqft_circuit_3_qubits} should be $\frac{\ket{0} + e^{i2\pi \ 0\textbf{.}j_2j_1j_0}\ket{1}}{\sqrt{2}}$ instead of $\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_2j_1}\ket{1}}{\sqrt{2}}$, but a $R_3$ has been removed (compare with figure \ref{qft_circuit_3_qubits}). Still, this circuit assumes an all-to-all connectivity and has a width of $n$. For the number of gates and the depth, looking at both extreme cases of the AQFT, we can go from $\mathcal{O}(n^2)$ to $\mathcal{O}(n)$ and from $\mathcal{O}(n)$ to $\mathcal{O}(1)$ respectively depending on how pronounced the approximation is (how many gates are deleted from the circuit).
+
+% Nb gates
+% Exact :
+
+% \begin{equation*}
+%     n \text{ Hadamards } + \frac{n}{2} \text{ SWAPs } + \frac{n(n-1)}{2} R_k \implies \mathcal{O}(n^2)
+% \end{equation*}
+
+% Approx. : 
+
+% \begin{equation*}
+%     n \text{ Hadamards } + \frac{n}{2} \text{ SWAPs } + \frac{(2n - k_{\text{max}})(k_{\text{max}}-1)}{2} R_k \implies \text{ from } \mathcal{O}(n^2) \text{ to } \mathcal{O}(n) \text{ depending on } k_{\text{max}}
+% \end{equation*}
+% \begin{equation*}
+%     k_{\text{max}} = n : n \text{ Hadamards } + \frac{n}{2} \text{ SWAPs } + \frac{n(n-1)}{2} R_k \implies \mathcal{O}(n^2)
+% \end{equation*}
+% \begin{equation*}
+%     k_{\text{max}} = 1 : n \text{ Hadamards } + \frac{n}{2} \text{ SWAPs } + 0 R_k \implies \mathcal{O}(n)
+% \end{equation*}
+
+% Depth
+% Exact :
+% (2n-1) for H+R_k and + 1 for SWAPs
+% Approx. :
+% Even if we remove gates, we can stitch parts of the circuit together like we would to compute the depth in the exact case. So the depth is $2n$ if $k_{\text{max}} \geq 2$ and 2 if $k_{\text{max}} = 1$ for all $n$. $\mathcal{O}(n)$ to $\mathcal{O}(1)$.
+
+\subsection{Bounds on the error}
+By how much do the exact QFT and AQFT differ? By slightly rearranging (\ref{AQFT_no_constraint}),
+
+\begin{equation*}
+    \text{AQFT}_{k_{\text{max}}}\ket{j} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i2\pi \left(\sum_{m=0}^{n-1}\sum_{l=0}^{n-1-m}j_mk_l2^{l+m-n} - \sum_{m=0}^{n-1}\sum_{l=0}^{n-k_{\text{max}}-m-1}j_mk_l2^{l+m-n}\right)}\ket{k}
+\end{equation*}
+
+In the argument, the sum on the left is the phase we would find in the exact QFT. Therefore, the sum on the right is what we remove from the phase of the exact QFT to obtain the AQFT or, in other words, the difference in the phase between the exact and approximated version for the state $\ket{k}$ given the input $\ket{j}$. If we note this difference $\zeta_{j,k}$, then 
+
+\begin{equation*}
+    0 \leq \zeta_{j,k} = \sum_{m=0}^{n-1}\sum_{l=0}^{n-k_{\text{max}}-m-1}j_mk_l2^{l+m-n} \leq \sum_{m=0}^{n-1}\sum_{l=0}^{n-k_{\text{max}}-m-1}2^{l+m-n}
+\end{equation*}
+
+and this is true for all $j$ and $k$. Further expanding the sums, we see that some terms can be removed
+
+\begin{equation*}
+    0 \leq \zeta_{j,k} \leq \underbrace{\sum_{m=n-k_{\text{max}}}^{n-1}\sum_{l=0}^{n-m-k_{\text{max}}-1} 2^{l+m-n}}_{\text{no terms}} + \sum_{m=0}^{n-k_{\text{max}}-1}\sum_{l=0}^{n-m-k_{\text{max}}-1}2^{l+m-n} = \sum_{m=0}^{n-k_{\text{max}}-1}\sum_{l=0}^{n-m-k_{\text{max}}-1}2^{l+m-n} 
+\end{equation*}
+
+due to the fact that the lower bound goes from 0 to a negative number, which indicates there are no terms. If we explicitly do the last double summation, the previous equation can be rearranged like so.
+
+\begin{equation}
+    0 \leq \zeta_{j,k} \leq \sum_{p=k_{\text{max}}+1}^{n}\sum_{q =k_{\text{max}}+1}^{p} 2^{-q} = 2^{-k_{\text{max}}}\left(n - k_{\text{max}}-1 \right) + 2^{-n}
+    \label{diff_inequality}
+\end{equation}
+
+This holds for all $j$ and $k$.
+
+
+
+
+
+
+
+
+
+
+
+

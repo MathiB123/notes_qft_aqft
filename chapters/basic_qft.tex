@@ -1,0 +1,394 @@
+\newpage
+\section{Quantum Fourier transform (QFT)}
+By convention, the quantum Fourier transform (QFT) is the quantum version of the IDFT. So, we work with kets in a Hilbert space of dimension $N = 2^n$ where $n$ is the number of qubits. The QFT is an important subroutine in many algorithms such as in the quantum phase estimation (QPE).
+
+\subsection{Derivation}
+On a vector $\ket{j}$ from the computational basis, based on \ref{dft_eq_canonical}, we expect
+
+\begin{equation}
+    \text{QFT}\ket*{j} = \frac{1}{\sqrt{N}}\sum_{k=0}^{N-1}e^{i \frac{2\pi}{N}jk}\ket*{k} = \frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n - 1}e^{i\frac{2\pi}{2^{n}}jk}\ket{k} = \ket{\phi(j)}
+    \label{def_qft}
+\end{equation}
+
+Knowing that $k$ can be represented in binary notation as $k_{n-1}...k_0 = k_02^0 + ... + k_{n-1}2^{n-1} = \sum_{l=0}^{n-1}k_l 2^l$, we get
+
+\begin{equation*}
+    \text{QFT}\ket*{j} = \frac{1}{\sqrt{2^n}}\sum_{k_{n-1} = 0}^{1}...\sum_{k_0 = 0}^{1}e^{i 2\pi j \sum_{l=0}^{n-1}\frac{k_l}{2^{n-l}}}\ket{k_{n-1}...k_0} = \frac{1}{\sqrt{2^n}}\sum_{k_{n-1} = 0}^{1}...\sum_{k_0 = 0}^{1} \prod_{l=0}^{n-1} e^{i 2\pi j \frac{k_l}{2^{n-l}}}\ket{k_{n-1}...k_0}
+\end{equation*}
+
+From that, we group each $e^{i 2\pi j \frac{k_l}{2^{n-l}}}$ with their corresponding state $\ket{k_l}$ and explicitly do all summations. This yields 
+
+\begin{equation*}
+    \text{QFT}\ket*{j} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{i 2\pi \frac{j}{2^{n-l}}}\ket{1}}{\sqrt{2}}\right)
+\end{equation*}
+
+In binary, $j = j_{n-1}...j_0 = j_02^0 + ... + j_{n-1}2^{n-1}$ which means that $\frac{j}{2^{n-l}} = j_{n-1}...j_{n-l}\textbf{.}j_{n-l-1}...j_0$ moves the bits to the right by $n-l$ positions. Here, we split the integer part to the left and the decimal part to the right by the "$\textbf{.}$" symbol. As $j$ is in the argument of a complex exponential, its integer part can be discarded to then only keep the decimal part $0\textbf{.}j_{n-l-1}...j_0 = j_{n-l-1}2^{-1} + ... + j_02^{-(n-l)}$. With that,
+
+\begin{equation}
+    \text{QFT}\ket{j} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-l-1}...j_0}\ket{1}}{\sqrt{2}}\right) = \ket{\phi(j)}
+    \label{qft_product_state}
+\end{equation}
+
+As we see, for the $l$-th qubit in $\ket{j}$, which we note $\ket{j_l}$,
+
+\begin{equation}
+    \ket{j_l} \xrightarrow{\text{QFT}} \frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-l-1}...j_0}\ket{1}}{\sqrt{2}} = \ket{\phi(j)_{n-l-1}}
+    \label{qft_lth_state}
+\end{equation}
+
+\subsection{Implementation with a quantum circuit}
+To build a quantum circuit that applies the QFT, we will use Hadamard gates $H$ and phase gates $R_k$.
+
+\begin{equation}
+    H = \frac{1}{\sqrt{2}}\begin{bmatrix}
+        1 & 1 \\
+        1 & -1
+    \end{bmatrix}, \ R_k = \begin{bmatrix}
+        1 & 0 \\
+        0 & e^{i 2\pi / 2^k}
+    \end{bmatrix}
+    \label{hadamard_phase_gate}
+\end{equation}
+
+On the basis state $\ket{j}$, applying $H$ on the last qubit $\ket{j_{n-1}}$ brings $j_{n-1}$ to the first position of the decimal number.
+
+\begin{equation*}
+    H\ket{j_{n-1}} \ket{j_{n-2}...j_0} = \frac{\ket{0} + (-1)^{j_{n-1}}\ket{1}}{\sqrt{2}}\ket{j_{n-2}...j_0} = \frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-1}}\ket{1}}{\sqrt{2}}\ket{j_{n-2}...j_0}
+\end{equation*}
+
+Then, a $R_2$ gate controlled by $\ket{j_{n-2}}$ and applied to $\ket{j_{n-1}}$ puts $j_{n-2}$ in the second position.
+
+\begin{equation*}
+    CR_2 \left(\frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-1}}\ket{1}}{\sqrt{2}}\ket{j_{n-2}}\right)\ket{j_{n-3}...j_0} = \frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-1}j_{n-2}}\ket{1}}{\sqrt{2}} \ket{j_{n-2}...j_0}
+\end{equation*}
+
+By repeating the same process with $CR_3, ..., CR_n$ controlled by $\ket{j_{n-3}}, ..., \ket{j_0}$ respectively and all applied to $\ket{j_{n-1}}$, we find
+
+\begin{equation*}
+    \frac{\ket{0} + e^{i 2\pi \ 0\textbf{.}j_{n-1}...j_0}\ket{1}}{\sqrt{2}} \ket{j_{n-2}...j_0} = \ket{\phi(j)_{n-1}}\ket{j_{n-2}...j_0} 
+\end{equation*}
+
+According to (\ref{qft_product_state}), $\ket{\phi(j)_{n-1}}$ should normally be stored in the first qubit of the register and currently it is stored in the last qubit of the register. We will solve this problem later. The pattern is repeated to all other $\ket{j_l}$ from the bottom of the register to the top where we first apply a Hadamard gate followed by $CR_2, ..., CR_{l+1}$ controlled by $\ket{j_{l-1}}, ..., \ket{j_0}$ respectively. As said earlier, this results in an output state where the $l$-th qubit stores $\ket{\phi(j)_{l}}$ that should normally be stored in the $n-1-l$-th qubit. To solve the problem, we can swap at the end the first qubit with the last qubit, the second qubit with the second last qubit, etc... Finally, this gives us (\ref{qft_product_state}) and measurements can be added at the end if required.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+\lstick{$\ket{j_0}$} & & & \ctrl{2} & & \ctrl{1} & \gate[1]{H} & \swap{2} &\rstick{$\ket{\phi(j)_2}$}\\
+\lstick{$\ket{j_1}$} & & \ctrl{1} & & \gate[1]{H} & \gate[1]{R_2} & &  &\rstick{$\ket{\phi(j)_1}$}\\
+\lstick{$\ket{j_2}$} & \gate[1]{H} & \gate[1]{R_2} & \gate[1]{R_3} & & & & \targX{} & \rstick{$\ket{\phi(j)_0}$}\\
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the QFT on $n=3$ qubits}
+    \label{qft_circuit_3_qubits}
+\end{figure}
+\end{center}
+
+The circuit requires $n$ Hadamard gates, $\sum_{i=1}^{n}(n-i) = \frac{n(n-1)}{2}$ phase gates and at most $\frac{n}{2}$ SWAPs. In general, this corresponds to $\mathcal{O}(n^2)$ gates and, depending on the connectivity of the qubits, additional SWAPs may be needed for the controlled phase gates to be done in practice. Also, the circuit has a width of $n$ and, by recursion, we can show that the circuit has a depth of $2n \implies \mathcal{O}(n)$. If we don't want the SWAPs at the end of the circuit, we can pass all of them through the circuit from right to left and interchange the gates that we face along the way. Then, figure \ref{qft_circuit_3_qubits} becomes
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+\lstick{$\ket{j_2}$} & \gate[1]{H} & \gate[1]{R_2} & \gate[1]{R_3} & & & & \rstick{$\ket{\phi(j)_2}$}\\
+\lstick{$\ket{j_1}$} & & \ctrl{-1} & & \gate[1]{H} & \gate[1]{R_2} & & \rstick{$\ket{\phi(j)_1}$}\\
+\lstick{$\ket{j_0}$} & & & \ctrl{-2} & &\ctrl{-1} & \gate[1]{H} & \rstick{$\ket{\phi(j)_0}$}\\
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Alternative quantum circuit for the QFT without any SWAPs on $n=3$ qubits}
+    \label{qft_circuit_3_qubits_no_SWAPs}
+\end{figure}
+\end{center}
+
+\subsection{Implementation with a dynamic quantum circuit}
+\subsubsection{Dynamic quantum circuits}
+Generally, at the end of a quantum circuit, all qubits or a subset of qubits are measured to obtain a bitstring that can be post-processed in order to get a comprehensible result. On the other end, dynamic quantum circuits have measurements within the circuit (in between gates). The measurement outputs are post-processed so that one or more quantum gates can be added (or not) classically to the quantum circuit depending on the result. This is called a "feed-forward" operation and is often used in the field of quantum error correction for example. If a given measurement requires a gate to be added on multiple qubits, a fan-out gate can be used to do so in parallel.
+
+Dynamic quantum circuits can be generated from quantum circuits with their measurements at the end by the deferred measurement principle. This principle states that a controlled gate commutes with a measurement when the measured qubit is the one that controls the gate. Intuitively, this makes sense, because measuring a control qubit after the gate is applied tells us whether or not the target qubit was affected by the gate. Therefore, we could measure the control qubit before this controlled gate and add it to the circuit on the target qubit classically depending on the measurement outcome.
+
+\subsubsection{Dynamic quantum circuit for the QFT}
+In the QFT, there are a lot of controlled operations, so the deferred measurement principle could be used here if all qubits are measured at the end (like in the QPE). To derive a dynamic quantum circuit for the QFT, we'll need to change the circuit by interchanging the control and target qubit of all controlled phase gates. 
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+\lstick{$\ket{j_0}$} & & & \gate[1]{R_3} & & \gate[1]{R_2} & \gate[1]{H} & \swap{2} & \meter{}\\
+\lstick{$\ket{j_1}$} & & \gate[1]{R_2} & & \gate[1]{H} & \ctrl{-1} & & &\meter{}\\
+\lstick{$\ket{j_2}$} & \gate[1]{H} & \ctrl{-1} & \ctrl{-2} & & & & \targX{} & \meter{}\\
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the QFT on $n=3$ qubits with control and target qubits interchanged}
+    \label{qft_circuit_interchanged_phase_gates}
+\end{figure}
+\end{center}
+
+This action still gives us (\ref{qft_product_state}) because the controlled phase gates are symmetric (like a CZ gate). Then, each measurement can be passed through the SWAPs (we will swap the measured bitstrings after the measurements) and through the control portion of the controlled phase gates by the deferred measurement principle. After measuring, the controlled phase gates can be added classically depending on the measurement outcomes.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.4cm]
+\lstick{$\ket{j_0}$} & & \gate[1]{R_3^{m_2}} & & & \gate[1]{R_2^{m_1}} & \gate[1]{H} & \meter{m_0} &\swap{2}\\
+\lstick{$\ket{j_1}$} & & \gate[1]{R_2^{m_2}} & & \gate[1]{H} & \meter{m_1} & & &\\
+\lstick{$\ket{j_2}$} & \gate[1]{H} & \meter{m_2} & & & & & & \targX{} \\
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Dynamic quantum circuit for the QFT on $n=3$ qubits}
+    \label{dynamical_qft_circuit}
+\end{figure}
+\end{center}
+
+% The number of gates, the number of measurements, the depth and the width have stayed the same in the dynamic version of the QFT. But, because of the classical operations, there are no constraints on the connectivity.
+
+\subsubsection{Benefits of a dynamic quantum circuit for the QFT}
+The dynamic version of the QFT assumes that measurements are performed at the end, which isn't always the case when the QFT is used as a subroutine. But, when this is the case like in the QPE, it can be a powerful tool when coupled with error suppression techniques like dynamical decoupling (DD). This helps to preserve a better fidelity throughout the process as shown in \cite{bäumer2024quantumfouriertransformusing}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.45]{images/results_dynamical_decoupling.png}
+    \caption{(a) Performance of the QFT for different implementations (b) Dynamical decoupling during the measurement and the feed-forward operation (c) Example with 10 qubits}
+    \label{dynamical_decoupling_results}
+\end{figure}
+
+The dynamic version of the QFT also has practical benefits when attempting to run it on real hardware, more precisely in the transpilation step. Since the dynamic quantum circuit for the QFT only requires one qubit gates and no specific connectivity, the transpilation step is simpler compared to the regular implementation of the QFT. Indeed, on IBM's quantum computers, the phase gates are native (so they are unchanged) and the Hadamard gate has a simple decomposition on the native gates. Therefore, when transpiled, the dynamic version of the QFT doesn't change that much and, importantly, remains a compact circuit which improves the results. For the basic implementation of the QFT, the transpilation step changes the circuit a lot because of the connectivity constraints and the gates on two qubits which are sometimes over a long range.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.38]{images/transpiled_qft.png}
+    \caption{QFT for $n=2$ qubits after the transpilation step on FakeSherbrooke}
+    \label{transpiled_qft}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.55]{images/transpiled_dynamic_qft.png}
+    \caption{Dynamic version of the QFT for $n=2$ qubits after the transpilation step on FakeSherbrooke}
+    \label{transpiled_dynamic_qft}
+\end{figure}
+
+\subsection{Implementation with nearest-neighbour connectivity}
+Here, we want to have a version of the all-to-all circuit in figure \ref{qft_circuit_3_qubits} that is made on a line of qubits (with nearest-neighbour connectivity). We will use additional SWAPs to move the qubits so that the long-range controlled gates are done on neighbouring qubits. Essentially, starting from the bottom qubit to the top one of figure \ref{qft_circuit_3_qubits}, we apply its gates in a staircase pattern using SWAPs so that the controlled phase gates are done on neighbouring qubits. Also, this construction naturally moves the qubits in their correct final position, mimicking the final layer of SWAPs found at the end of figure \ref{qft_circuit_3_qubits}. This implementation can be found in \cite{Holmes_2020}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.23]{images/qft_line_2_qubits.jpg}
+    \caption{All-to-all QFT (on the left) and QFT on a line (on the right) for $n=2$ qubits}
+    \label{qft_line_2_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.23]{images/qft_line_3_qubits.jpg}
+    \caption{All-to-all QFT (on the left) and QFT on a line (on the right) for $n=3$ qubits}
+    \label{qft_line_3_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.23]{images/qft_line_4_qubits.jpg}
+    \caption{All-to-all QFT (on the left) and QFT on a line (on the right) for $n=4$ qubits}
+    \label{qft_line_4_qubits}
+\end{figure}
+
+With a closer look, each staircase in the circuit on a line applies all the gates of one of the qubits in the all-to-all circuit. This qubit, with the positioning of the SWAPs in the circuit on a line, progressively moves to its correct final position and all qubits initially above it get shifted down by one position. Thus, the next qubit we need to apply gates to always ends up at the bottom and staircase layers can be applied one after the other.
+
+As we can see, this implementation on a line can be generalized recursively to obtain the circuit on a line for any number of qubits. Indeed, we can take the circuit on a line for $n-1$ qubits and add on top of it, in a staircase pattern, the gates found on the last qubit of the all-to-all circuit on $n$ qubits. 
+
+To compute the depth of this circuit, we can observe that each time a staircase is added, there is "room" under it to do some operations of the circuit on $n-1$ qubits in parallel. Visually, we "slide" the circuit on $n-1$ qubits to the left under the new staircase and obtain all previous figures. But, there will only be room after the $CR_3$ gate of the new staircase. Therefore, a new staircase increases the depth by 4 with its 1 Hadamard gate, 2 controlled phase gates and 1 SWAP on the left which don't allow for more operations to be done in parallel. Since the circuit on $n$ qubits is built recursively from the circuit for $n=2$ which also has a depth of 4, this means we always add 4 to the depth with each new qubit for $n \geq 2$. This yields a total depth of $4(n-1) \ \forall n\geq 2 \implies \mathcal{O}(n)$ for the QFT on a line.
+
+\subsection{Reversed implementation with nearest-neighbour connectivity}
+In this case, we want a QFT implementation on a line of $n$ qubits where the output is reversed. This is the same as trying  to do the all-to-all circuit without the last layer of SWAPs on a line. We propose the following circuit, which is similar in a way to what we found previously in figures \ref{qft_line_2_qubits}-\ref{qft_line_4_qubits}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.24]{images/reversed_qft_2_qubits.jpg}
+    \caption{Reversed all-to-all QFT (on the left) and reversed QFT on a line (on the right) for $n=2$ qubits}
+    \label{reversed_qft_line_2_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.24]{images/reversed_qft_3_qubits.jpg}
+    \caption{Reversed all-to-all QFT (on the left) and reversed QFT on a line (on the right) for $n=3$ qubits}
+    \label{reversed_qft_line_3_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.24]{images/reversed_qft_4_qubits.jpg}
+    \caption{Reversed all-to-all QFT (on the left) and reversed QFT on a line (on the right) for $n=4$ qubits}
+    \label{reversed_qft_line_4_qubits}
+\end{figure}
+
+One can show recursively, by analyzing the circuit and seeing what operations can be done in parallel, that the depth of this circuit is $5n-8 \ \forall n \geq 3$ and $5n-7$ for $n=2$. In general, this corresponds to $\mathcal{O}(n)$ for the depth of this implementation.
+
+% Alternatively, we could use the circuits found in the section 2.4 and append at the end of them a circuit which reverses the order. One way to use this would be with the following circuits.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.2]{images/reverse_2_qubits.jpg}
+%     \caption{Reverse operation for $n=2$ qubits}
+%     \label{reverse_line_2_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.2]{images/reverse_3_qubits.jpg}
+%     \caption{Reverse operation for $n=3$ qubits}
+%     \label{reverse_line_3_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.2]{images/reverse_4_qubits.jpg}
+%     \caption{Reverse operation for $n=4$ qubits}
+%     \label{reverse_line_4_qubits}
+% \end{figure}
+
+% As we can see, it is also done on a line and, by itself, one can show recursively that the depth of this operation is $2n-3 \ \forall n \geq 2 \implies \mathcal{O}(n)$. When appended at the end of the QFT on a line, it is also possible to show that we can save $n-2$ from the depth of the reverse operation by doing some of the gates in parallel during the QFT. Thus, this implementation of the QFT on a line where the register is reversed has a depth of $4(n-1) + (2n-3) - (n-2) = 5(n-1) \ \forall n \geq 2\implies \mathcal{O}(n)$.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.15]{images/qft_reversed_2_qubits.jpg}
+%     \caption{Reversed QFT on a line for $n=2$ qubits (compare with figure \ref{qft_line_2_qubits})}
+%     \label{qft_reversed_line_2_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.17]{images/qft_reversed_3_qubits.jpg}
+%     \caption{Reversed QFT on a line for $n=3$ qubits (compare with figure \ref{qft_line_3_qubits})}
+%     \label{qft_reversed_line_3_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.17]{images/qft_reversed_4_qubits.jpg}
+%     \caption{Reversed QFT on a line for $n=4$ qubits (compare with figure \ref{qft_line_4_qubits})}
+%     \label{qft_reversed_line_4_qubits}
+% \end{figure}
+
+% For the reversed QFT on a line, it could also be possible to design a new circuit for it directly from figure \ref{qft_circuit_3_qubits} where we ignore the last layer of SWAPs and try to do the remaining operations on a line of qubits. This would probably yield a circuit with a lower depth compared to our current implementation, because here a part of the circuit is used only to reverse the ordre of the qubits. It would be better to have this part baked in the construction of the circuit like in figures \ref{qft_line_2_qubits}-\ref{qft_line_4_qubits} where the qubits progressively move to their correct final position.
+
+\subsection{Reversed implementation with nearest-neighbour connectivity on two meshed registers}
+The goal is to build a circuit for the reversed QFT on a line where two registers $A$ and $B$ are meshed together in an alterning pattern $\ket{A_0, B_0, ..., A_{n-1}, B_{n-1}}$. We want the reversed QFT on a line for $n$ qubits to be computed on the register $B$ and for it to still be done with nearest-neighbour connectivity in linear depth. So, in this situation, $A$ will act as a spacer to separate the qubits of $B$ by one tick and is left untouched. First, we consider the following identities.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+ & \swap{1} & & \swap{1} & \hspace{3cm}\\
+ & \targX{} & \ctrl{1}  & \targX{} & \hspace{1cm} \text{\ \ $\iff$} \hspace{1cm} \\
+& & \gate[1]{R_k} & & \hspace{3cm}\\
+\end{quantikz}
+\begin{quantikz}[row sep = 0.3cm]
+ & \ctrl{2} & \\
+ & & \\
+ & \gate[1]{R_k} & \\
+\end{quantikz}
+\end{center}
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+ & \swap{1} & &  & \swap{1} & \hspace{3cm}\\
+ & \targX{} & \ctrl{1} & \swap{1} & \targX{} & \hspace{1cm} \text{\ \ $\iff$} \hspace{1cm} \\
+& & \gate[1]{R_k} & \targX{} & & \hspace{3cm}\\
+\end{quantikz}
+\begin{quantikz}[row sep = 0.3cm]
+ & \ctrl{2} & \swap{2} & \\
+ & &  &\\
+ & \gate[1]{R_k} & \targX{} & \\
+\end{quantikz}
+\end{center}
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+ & \swap{1} &  & \swap{1} & \hspace{3cm}\\
+ & \targX{} & \swap{1} & \targX{} & \hspace{1cm} \text{\ \ $\iff$} \hspace{1cm} \\
+&  & \targX{} & & \hspace{3cm}\\
+\end{quantikz}
+\begin{quantikz}[row sep = 0.3cm]
+ & \swap{2} & \\
+ &  &\\
+  & \targX{} & \\
+\end{quantikz}
+\end{center}
+
+Then, consider the circuits for the reversed QFT on a line as seen in the figures \ref{reversed_qft_line_2_qubits}-\ref{reversed_qft_line_4_qubits} and do them on the register $B$. This "stretches" the circuits and they are no longer done on a line. To put everything back on a line, we can simply use the identities shown above and assert the resulting circuit has a linear depth. 
+
+
+% One can show that the depth is $8(n-1) \ \forall n \geq 3$ and $8(n-1) - 1$ for $n=2$. In general, this is $\mathcal{O}(n)$ for the depth.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.13]{images/qft_reversed_stretch_2_qubits.jpg}
+%     \caption{Equivalent circuit of figure \ref{qft_reversed_line_2_qubits} done on the register $B$}
+%     \label{qft_stretch_2_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.13]{images/qft_reversed_stretch_3_qubits.jpg}
+%     \caption{Equivalent circuit of figure \ref{qft_reversed_line_3_qubits} done on the register $B$}
+%     \label{qft_stretch_3_qubits}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.13]{images/qft_reversed_stretch_4_qubits.jpg}
+%     \caption{Equivalent circuit of figure \ref{qft_reversed_line_4_qubits} done on the register $B$}
+%     \label{qft_stretch_4_qubits}
+% \end{figure}
+
+% From the previous section, we know these stretched circuits have a depth of $5(n-1)$. But, because the register spaces all qubits of $B$ by one tick, the circuit is not on a line anymore. 
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.4]{images/reverse_2_qubits_fpe.png}
+%     \caption{Reversed QFT on a line done on the register $B$ for $n=2$ qubits}
+%     \label{reverse_2_qubits_fpe}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.4]{images/reverse_3_qubits_fpe.png}
+%     \caption{Reversed QFT on a line done on the register $B$ for $n=3$ qubits}
+%     \label{reverse_3_qubits_fpe}
+% \end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.4]{images/reverse_4_qubits_fpe.png}
+%     \caption{Reversed QFT on a line done on the register $B$ for $n=4$ qubits}
+%     \label{reverse_4_qubits_fpe}
+% \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.5]{images/reversed_qft_fpe_2_qubits.png}
+    \caption{Reversed QFT on a line done on the register $B$ for $n=2$ qubits}
+    \label{reversed_qft_fpe_2_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.45]{images/reversed_qft_fpe_3_qubits.png}
+    \caption{Reversed QFT on a line done on the register $B$ for $n=3$ qubits}
+    \label{reversed_qft_fpe_3_qubits}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.4]{images/reversed_qft_fpe_4_qubits.png}
+    \caption{Reversed QFT on a line done on the register $B$ for $n=4$ qubits}
+    \label{reversed_qft_fpe_4_qubits}
+\end{figure}
+
+For this implementation, one can show recursively, by analyzing the circuit and seeing what operations can be done in parallel, that the depth is $8n-13 \ \forall n \geq 3$ and $8n-12$ for $n=2$. This corresponds to $\mathcal{O}(n)$ in general for this implementation.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|cccc}
+ \textbf{Implementation}& \textbf{All-to-all} & \textbf{Line} & \textbf{Line + reversed} & \textbf{Line + reversed + 2 meshed registers} \\
+\hline
+\textbf{Depth}           & 2$n$                & 4$(n-1)$                & $5n-8$                 & $8n-13$               
+\end{tabular}
+\caption{Depth value for different QFT implementations}
+\label{tab:depth_methods}
+\end{table}
+
+% $6n-8 \implies \mathcal{O}(n)$ pas reversed. 
+
+
+

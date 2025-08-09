@@ -1,0 +1,162 @@
+\newpage
+\section{Quantum Fourier state computation (QFS)}
+\subsection{Exact QFS}
+The quantum Fourier state computation accomplishes the following operation between two registers $A$ and $B$ : 
+
+\begin{equation}
+    \ket{j}_A\ket{\phi(b)}_B \xrightarrow{\text{QFS}_{AB}} \ket{j}_A\ket{\phi(b+j)}_B
+    \label{eq_qfs}
+\end{equation}
+
+Essentially, we are building a quantum adder in the Fourier basis between two registers. Notice that 
+
+\begin{equation*}
+    \ket{\phi(b)}_B = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0}_B+e^{i\frac{2\pi}{2^{n-l}}b}\ket{1}_B}{\sqrt{2}}\right)
+\end{equation*}
+
+and
+
+\begin{equation*}
+    \ket{\phi(b+j)}_B = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0}_B + e^{i\frac{2\pi}{2^{n-l}}(b+j)}\ket{1}_B}{\sqrt{2}}\right) 
+    % = \bigotimes_{l=0}^{n-1}\begin{bmatrix}
+    %     1 & 0 \\
+    %     0 & e^{i\frac{2\pi}{2^{n-l}}j}\\
+    % \end{bmatrix}\left(\frac{\ket{0}_B+e^{i\frac{2\pi}{2^{n-l}}b}\ket{1}_B}{\sqrt{2}}\right)
+    = \bigotimes_{l=0}^{n-1}\prod_{k=0}^{n-l-1}R_{n-l-k}^{j_k}\left(\frac{\ket{0}_B+e^{i\frac{2\pi}{2^{n-l}}b}\ket{1}_B}{\sqrt{2}}\right)
+\end{equation*}
+% \begin{equation*}
+%     = \bigotimes_{l=0}^{n-1}\prod_{k=0}^{n-l-1}R_{n-l-k}^{j_k}\left(\frac{\ket{0}_B+e^{i\frac{2\pi}{2^{n-l}}b}\ket{1}_B}{\sqrt{2}}\right)
+% \end{equation*}
+
+where $R_{n-l-k}^{j_k}$ is a phase gate of parameter $n-l-k$ controlled by qubit $j_k$. Therefore, \ref{eq_qfs} is implemented like so. 
+
+\begin{center}
+\begin{quantikz}[row sep = 0.25cm]
+    \lstick{$\ket{j_0}_A$} &  & &\ctrl{3} & & \ctrl{4}&\ctrl{5} &  \rstick{$\ket{j_0}_A$} \\
+    \lstick{$\ket{j_1}_A$} & & \ctrl{2} & & \ctrl{3} & & & \rstick{$\ket{j_1}_A$} \\
+    \lstick{$\ket{j_2}_A$} & \ctrl{1} & & & &  &  & \rstick{$\ket{j_2}_A$} \\
+    \lstick{$\ket{\phi(b)_2}_B$} & \gate{R_1} & \gate{R_2}& \gate{R_3} & & && \rstick{$\ket{\phi(b+j)_2}_B$} \\
+    \lstick{$\ket{\phi(b)_1}_B$} & & & & \gate{R_1} & \gate{R_2} && \rstick{$\ket{\phi(b+j)_1}_B$} \\
+    \lstick{$\ket{\phi(b)_0}_B$} & &  &  & & &\gate{R_1} &\rstick{$\ket{\phi(b+j)_0}_B$}
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the exact $\text{QFS}_{AB}$ on $n=3$ qubits}
+    \label{exact_qfs_circuit_3_qubits}
+\end{figure}
+\end{center}
+
+For our needs, we will look at the case where $b=0$. Then, the input state in the register $B$ is $\ket{\phi(0)}_B = \text{SWAPs}\left(H^{\otimes n}\ket{0}_B\right)$ and the QFS outputs $\ket{\phi(j)}_B$ in this register. 
+% where "SWAPs" corresponds to the final layer of SWAPs found in the regular QFT.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.25cm]
+    \lstick{$\ket{j_0}_A$} & &  & &\ctrl{3} & & \ctrl{4}&\ctrl{5} &  \rstick{$\ket{j_0}_A$} \\
+    \lstick{$\ket{j_1}_A$}&  & & \ctrl{2} & & \ctrl{3} & & & \rstick{$\ket{j_1}_A$} \\
+    \lstick{$\ket{j_2}_A$} & & \ctrl{1} & & & &  &  & \rstick{$\ket{j_2}_A$} \\
+    \lstick{$H\ket{0_0}_B$}& \swap{2} & \gate{R_1} & \gate{R_2}& \gate{R_3} & & && \rstick{$\ket{\phi(j)_2}_B$} \\
+    \lstick{$H\ket{0_1}_B$} & & & & & \gate{R_1} & \gate{R_2} && \rstick{$\ket{\phi(j)_1}_B$} \\
+    \lstick{$H\ket{0_2}_B$} & \targX{}& &  &  & & &\gate{R_1} &\rstick{$\ket{\phi(j)_0}_B$}
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the exact $\text{QFS}_{AB}$ on $n=3$ qubits with $b=0$}
+    \label{exact_qfs_circuit_3_qubits_0}
+\end{figure}
+\end{center}
+
+If we pass the SWAPs through the circuit, we get a circuit that looks like this.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+    \lstick{$\ket{j_0}_A$} &  & &\ctrl{5} & & \ctrl{4}&\ctrl{3} & & \rstick{$\ket{j_0}_A$} \\
+    \lstick{$\ket{j_1}_A$} & & \ctrl{4} & & \ctrl{3} & & & &\rstick{$\ket{j_1}_A$} \\
+    \lstick{$\ket{j_2}_A$} & \ctrl{3} & & & &  &  & &\rstick{$\ket{j_2}_A$} \\
+    \lstick{$H\ket{0_0}_B$} & &  &  & & &\gate{R_1} & \swap{2}&\rstick{$\ket{\phi(j)_2}_B$} \\
+    \lstick{$H\ket{0_1}_B$} & & & & \gate{R_1} & \gate{R_2} && &\rstick{$\ket{\phi(j)_1}_B$} \\
+    \lstick{$H\ket{0_2}_B$} & \gate{R_1} & \gate{R_2}& \gate{R_3} & & && \targX{}& \rstick{$\ket{\phi(j)_0}_B$}
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Alternative quantum circuit for the exact $\text{QFS}_{AB}$ on $n=3$ qubits with $b=0$}
+    \label{exact_qfs_circuit_3_qubits_0_swaps_passed}
+\end{figure}
+\end{center}
+
+Looking at this situation closely, we see that we are performing a QFT where the result of the computation is stored on a separate register than where the input $j$ is. Since figure \ref{exact_qfs_circuit_3_qubits_0_swaps_passed} is essentially a QFT, there are $\mathcal{O}(n^2)$ gates and a depth of $\mathcal{O}(n)$ just like in the regular QFT. The width is now $2n$ because of the two registers and this circuit assumes an all-to-all connectivity. 
+
+For a line connectivity, we can mesh the two registers such that $\ket{j_l}$ is above $H\ket{0_l}$ initially. Also, we use additional SWAPs to have controlled operations over qubits that are right next to each other. Finally, the last layer of SWAPs at the end in figure \ref{exact_qfs_circuit_3_qubits_0_swaps_passed} is omitted to preserve a line connectivity. This results in the output being reversed for the register $B$. In practice, this change of order is fine because if some other operations happen after the QFS, we can design them to take into account this new order.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+    \lstick{$\ket{j_0}_A$} & \ctrl{1}& \swap{1}& &&&&  \swap{1}& \rstick{$\ket{j_0}_A$} \\
+    \lstick{$H\ket{0_0}_B$} & \gate{R_1} & \targX{} & \ctrl{1}& \swap{1}& & \swap{1}& \targX{} &\rstick{$\ket{\phi(j)_0}_B$} \\
+    \lstick{$\ket{j_1}_A$} & \ctrl{1}& \swap{1}& \gate{R_2}& \targX{} & \ctrl{1}& \targX{}& \swap{1}&\rstick{$\ket{j_1}_A$} \\
+    \lstick{$H\ket{0_1}_B$} & \gate{R_1} & \targX{} &\ctrl{1}& \swap{1}& \gate{R_3}& \swap{1} & \targX{}&\rstick{$\ket{\phi(j)_1}_B$} \\
+    \lstick{$\ket{j_2}_A$}  & \ctrl{1}& \swap{1} &\gate{R_2}& \targX{} && \targX{}& \swap{1}&\rstick{$\ket{j_2}_A$} \\
+    \lstick{$H\ket{0_2}_B$} & \gate{R_1} & \targX{} & &&& &\targX{}&\rstick{$\ket{\phi(j)_2}_B$}
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Quantum circuit for the exact $\text{QFS}_{AB}$ on a line with the output reversed for $n=3$ qubits with $b=0$}
+    \label{exact_qfs_circuit_line}
+\end{figure}
+\end{center}
+
+For the depth, we have $+1$ for the $CR_1$ gates, $+(n-1)$ for the remaining phase gates, $+(n-1)$ for the SWAPs interlaced with the phase gates and $+(n-1)$ for the SWAPs at the very end. In total, this is a depth of $3n-2 \implies \mathcal{O}(n)$. The width is still $2n$ and the number of gates is $\mathcal{O}(n^2)$.
+
+\subsection{Approximate QFS}
+In this section, we want to build an approximate version of the QFS for the case $b=0$. Naturally, we will do the same thing as with the AQFT$_{k_{\text{max}}}$ and remove phase gates that add a negligible phase. In the implementation on a line, removing some phase gates will also result in SWAPs cancelling each other, giving a more compact circuit.
+
+\begin{center}
+\begin{quantikz}[row sep = 0.3cm]
+    \lstick{$\ket{j_0}_A$} & \ctrl{1}& \swap{1} &&  \swap{1}& \rstick{$\ket{j_0}_A$}\\
+    \lstick{$H\ket{0_0}_B$} & \gate{R_1} & \targX{} & \ctrl{1} & \targX{} & \rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_0}\ket{1}}{\sqrt{2}}$}\\
+    \lstick{$\ket{j_1}_A$} & \ctrl{1}& \swap{1}& \gate{R_2} & \swap{1}&\rstick{$\ket{j_1}_A$}\\
+    \lstick{$H\ket{0_1}_B$} & \gate{R_1} & \targX{} &\ctrl{1} & \targX{}& \rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_1j_0}\ket{1}}{\sqrt{2}}$}\\
+    \lstick{$\ket{j_2}_A$} & \ctrl{1}& \swap{1} &\gate{R_2} & \swap{1}& \rstick{$\ket{j_2}_A$}\\
+    \lstick{$H\ket{0_2}_B$} & \gate{R_1} & \targX{} & &\targX{}& \rstick{$\frac{\ket{0} +  e^{i2\pi \ 0\textbf{.}j_2j_1}\ket{1}}{\sqrt{2}}$}
+\end{quantikz}
+\begin{figure}[H]
+    \caption{Approximate $\text{QFS}_{AB}$ on a line with the output reversed for $n=3$ qubits, $k_{\text{max}}=2$ and $b=0$}
+    \label{approx_qfs_circuit_line}
+\end{figure}
+\end{center}
+
+Now, suppose that we pick $k_{\text{max}} = \mathcal{O}(\log\left(\frac{n}{\varepsilon}\right))$ where $\frac{1}{\text{poly}(n)} \leq \varepsilon < 1$. Then, \ref{diff_inequality} becomes 
+
+\begin{equation}
+    0 \leq \zeta_{j,k} \leq 2^{-\log(n/\varepsilon)}\left(n - \log(n/\varepsilon) - 1\right) + 2^{-n} = \varepsilon\left(1 - \frac{1}{n}\log(n/\varepsilon) - \frac{1}{n}\right) + 2^{-n} \leq \varepsilon + 2^{-n} \leq 2\varepsilon
+    \label{diff_phase}
+\end{equation}
+
+where the last step assumes that $2^{-n} \leq \varepsilon$. This will be true if $n$ is large enough, which is the case when the approximate QFS is most useful. By a similar reasoning as in the previous section, the depth of the circuit in figure \ref{approx_qfs_circuit_line} is $3k_{\text{max}} - 2 = 3\mathcal{O}(\log(\frac{n}{\varepsilon})) - 2 \implies \mathcal{O}(\log(\frac{n}{\varepsilon}))$. So, with a logarithmic depth, the approximate QFS on a line for the case $b=0$ can be done with an arbitrary precision $\frac{1}{\text{poly}(n)} \leq \varepsilon < 1$ for the difference in phase between the exact and approximate QFS. It would be more rigorous to use a distance measure betweem the output state of the exact and approximate QFS to compute the precision like in \cite{bäumer2025approximatequantumfouriertransform}. In that case, with the same conditions, it is also possible to show that the distance can be made arbitrarily close for states in
+
+\begin{equation}
+    \mathcal{S} = \left\{\ket{\psi}_{ABE} \in \mathcal{H}_{ABE} : \ket{\psi}_{ABE} = \sum_{j=0}^{2^n -1}\sum_{m=0}^{M-1}\alpha_{j,m}\ket{j}_A\ket{0}_B\ket{m}_E\right\}
+    \label{eq_s}
+\end{equation}
+
+where $E$ is some environment of dimension $M \geq 2^{2n}$ and $\ket{\psi}_{ABE} \in \mathcal{H}_{ABE}$ are pure and normalized states of a tripartite Hilbert space $\mathcal{H}_{ABE}$.
+
+\subsection{Special case of the QFS}
+What happens when the input of the register $B$ is not in the Fourier basis? In other words, what does the QFS yield when the input is $\ket{b}_B$ instead of $\ket{\phi(b)}_B$? One way to find out is the write $\ket{b}_B$ in the Fourier basis and give that as an input to the QFS. Using (\ref{def_qft}),
+
+\begin{equation}
+    \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}bx}\ket{\phi(x)}_B = \frac{1}{2^n}\sum_{y=0}^{2^n-1}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}x(b-y)}\ket{y}_B = \frac{1}{N}\sum_{y=0}^{2^n-1}2^n\delta_{b,y}\ket{y}_B = \ket{b}_B
+    \label{eq_b_fourier_basis}
+\end{equation}
+
+Then,
+
+\begin{equation*}
+    \text{QFS}\left(\ket{j}_A\ket{b}_B\right) = \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}bx}\text{QFS}\left(\ket{j}_A\ket{\phi(x)}_B\right) = \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}bx}\ket{j}_A\ket{\phi(x+j)}_B
+\end{equation*}
+\begin{equation*}
+    = \frac{1}{\sqrt{2^n}}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}bx}\ket{j}_A\left(\frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}(x+j)k}\ket{k}_B\right) = \frac{1}{2^n}\sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}jk}\sum_{x=0}^{2^n-1}e^{-i\frac{2\pi}{2^n}(b-k)x}\ket{j}_A\ket{k}_B
+\end{equation*}
+\begin{equation}
+    = \frac{1}{2^n}\sum_{k=0}^{2^n-1}e^{i\frac{2\pi}{2^n}jb}2^n\delta_{b,k}\ket{j}_A\ket{k}_B = e^{i\frac{2\pi}{2^n}jb}\ket{j}_A\ket{b}_B
+    \label{qfs_on_b}
+\end{equation}
+
+
+
+
+

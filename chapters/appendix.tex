@@ -1,0 +1,30 @@
+\addcontentsline{toc}{subsection}{The circuit in figure \ref{qft_circuit_3_qubits} has a depth of $2n$} 
+\subsection*{The circuit in figure \ref{qft_circuit_3_qubits} on $n$ qubits has a depth of $2n$}
+...
+
+% We will show this recursively. For the base case $n=2$, we have the following circuit.
+
+% \begin{center}
+% \begin{quantikz}
+% \lstick{$\ket{j_0}$}&  & \ctrl{1} & \gate[1]{H} & \swap{1} &\rstick{$\ket{\phi(j)_1}$}\\
+% \lstick{$\ket{j_1}$} & \gate[1]{H} & \gate[1]{R_2} & & \targX{} &\rstick{$\ket{\phi(j)_0}$}\\
+% \end{quantikz}
+% \end{center}
+
+% For the moment, we ignore the SWAP(s) and we count the depth to be $3 = 2 \cdot 2 - 1 = 2n -1$. The SWAP(s) always add 1 to the depth, because they can all be done at the same time. So, in total, the depth is $2n -1 +1 = 2n$. As another example, we do the case $n=3$ where the circuit is :
+
+% \begin{center}
+% \begin{quantikz}
+% \lstick{$\ket{j_0}$} & & & \ctrl{2} & \gategroup[2,steps=3,style={dashed,rounded
+% corners,fill=blue!20, inner
+% xsep=2pt},background,label style={label
+% position=below,anchor=north,yshift=-0.2cm}]{{circuit $n=2$}}& \ctrl{1} & \gate[1]{H} & \swap{2} &\rstick{$\ket{\phi(j)_2}$}\\
+% \lstick{$\ket{j_1}$} & & \ctrl{1} & & \gate[1]{H} & \gate[1]{R_2} & &  &\rstick{$\ket{\phi(j)_1}$}\\
+% \lstick{$\ket{j_2}$} & \gate[1]{H} & \gate[1]{R_2} & \gate[1]{R_3} & & & & \targX{} & \rstick{$\ket{\phi(j)_0}$}
+% \end{quantikz}
+% \end{center}
+
+% As we can see, the blue box corresponds to the circuit for $n-1=2$ qubits, which we know the depth to be $2(n-1)-1 = 2n-3 = 2\cdot 3 -3 = 3$ when SWAP(s) are not included. As is, the gates on the last qubit would add $n=3$ to the depth, but some space is available and we can move this blue box $n-2 = 1$ space to the left to apply some operations in parallel (in this case the $CR_3$ gate and the Hadamard gate on the second qubit). Therefore, the depth is $n - (n-2) + 2(n-1) - 1 = 2n-1 = 2 \cdot 3 -1 = 5$. Finally, we add $1$ to the total to take into account the SWAP(s), so $2n = 2 \cdot 3 = 6$.
+
+% If, for an arbitrarily $n$, we suppose this holds up to $n-1$, then it also holds for $n$. Part of the circuit on $n$ qubits is the one foir $n-1$ qubits with depth $2(n-1) - 1$. Then, there are $n$ gates on the last qubit which would add $n$ to the depth. But, there are $n-2$ spaces to move the circuit on $n-1$ qubits to the left in order to do some operations in parallel. The final SWAPs add +1. So, $n - (n-2) + 2(n-1) -1 +1 = 2n$. 
+

@@ -1,0 +1,31 @@
+\newpage
+\section{QFT$_{\text{uni}}$}
+In this section, we want to build a QFT that acts on the set of state 
+
+\begin{equation}
+    \mathcal{S}_{\text{uni}}^{(p)} = \left\{\ket{\psi}_{ABE} \in \mathcal{H}_{ABE} : \ket{\psi}_{ABE} = \sum_{j=0}^{2^n -1}\sum_{m=0}^{M-1}\beta_{j,m}\ket{j}_A\ket{0}_B\ket{m}_E, \abs{\sum_{m}\beta_{j,m}\beta^{*}_{l,m}} \leq \frac{p(n)}{N}\delta_{j,l} \forall j,l\right\}
+    \label{s_uni}
+\end{equation}
+
+which is closely related to $\mathcal{T}_{\text{uni}}^{(p)}$. Notice that $\mathcal{S}_{\text{uni}}^{(p)} \subseteq \mathcal{S}$. To do this operation exaclty given an input $\ket{j}_A\ket{0}_B$ on two registers $A$ and $B$ of $n$ qubits, we could apply the following gates.
+
+\begin{equation*}
+    \ket{j}_A\ket{0}_B \xrightarrow{H} \ket{j}_A\ket{\phi(0)}_B \xrightarrow{\text{QFS}} \ket{j}_A\ket{\phi(j)}_B \xrightarrow{\text{FPE}} \ket{0}_A\ket{\phi(j)}_B \xrightarrow{\text{SWAPs}} \ket{\phi(j)}_A\ket{0}_B
+\end{equation*}
+
+For an approximate version, we could use the approximate circuit for all the subroutines used in the exact version. Since the approximate QFS reverses its output, the FPE needs to take that into account by using the reversed implementation found in section 2 for the QFT$^{\dagger}$s/QFTs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.55]{images/circuit_qft_uni.png}
+    \caption{Quantum circuit for the QFT$_{\text{uni}}$}
+    \label{circuit_qft_uni}
+\end{figure}
+
+In \cite{bäumer2025approximatequantumfouriertransform}, they show that for $\frac{1}{\text{poly}(n)} \leq \varepsilon < 1$, the approximate QFT$_{\text{uni}}$ can be implemented on a line of $2n$ qubits in depth $\mathcal{O}(\log(n/\varepsilon^2))$ for states in $\mathcal{S}_{\text{uni}}$.
+
+
+
+
+
+

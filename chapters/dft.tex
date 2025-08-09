@@ -1,0 +1,47 @@
+\section{Discrete Fourier transform (DFT)}
+The discrete Fourier transform (DFT) corresponds to the discrete version of the Fourier transform (FT), a mathematical tool which gives a frequency description of the content present in some function. For example, the FT can be applied to music in order to find what frequencies (musical notes) are present in it. The FT acts on some analytical function, whereas the DFT acts on a set of data points. Naturally, the latter is the version used by computers. Mathematically, the DFT takes a vector $\vec{x} = \left[x_0, ..., x_{N-1}\right]^T \in \mathbb{C}^N$ and transforms it into a new vector $\vec{y} = \left[y_0, ..., y_{N-1}\right]^T \in \mathbb{C}^N$ with components 
+
+\begin{equation}
+    y_k = \frac{1}{\sqrt{N}}\sum_{j=0}^{N-1}x_j e^{-i\frac{2\pi}{N}jk}
+    \label{dft_eq}
+\end{equation}
+
+There also exists an inverse operation called the inverse Fourier transform (IFT) which, from the known frequencies, allows the original function to be reconstructed. Yet again, there is a discrete equivalent called the inverse discrete Fourier transform (IDFT) which can be obtained by isolating $x_j$ in (\ref{dft_eq}). 
+
+\begin{equation}
+    % \sqrt{N}\sum_{k=0}^{N-1}y_k e^{i\frac{2\pi}{N}j^{'}k} = \sum_{j=0}^{N-1}x_j\sum_{k=0}^{N-1}e^{-i\frac{2\pi}{N}k(j-j^{'})} = Nx_{j^{'}} \implies 
+    x_j = \frac{1}{\sqrt{N}}\sum_{k=0}^{N-1}y_k e^{i\frac{2\pi}{N}jk}
+    \label{idft_eq} 
+\end{equation}
+
+On the canonical basis $\{\vec{e}_0, ..., \vec{e}_{N-1}\}$, the DFT is simply a change of basis. Indeed, because $\vec{e}_j$ only has one non-zero element at the $j$-th index, we get 
+
+\begin{equation}
+    \text{DFT}(\vec{e}_j) = \frac{1}{\sqrt{N}}\left[1, e^{-i\frac{2\pi}{N}j}, ..., e^{-i\frac{2\pi}{N}j(N-1)}\right]^T = \frac{1}{\sqrt{N}}\sum_{k=0}^{N-1}e^{-i\frac{2\pi}{N}jk}\vec{e}_k = \vec{u}_j
+    \label{dft_eq_canonical}
+\end{equation}
+
+Therefore, $\{\vec{e}_j\}$ becomes $\{\vec{u}_j\}$ and we can verify that $\{\vec{u}_j\}$ is an orthonormal basis by only checking the orthonormality property. This is because orthonormality ensures linear independence and because the number of vectors in the set matches the dimension of the vector space.
+
+\begin{equation*}
+    \vec{u}_a \cdot \vec{u}_b = \frac{1}{N}\sum_{k,k^{'} = 0}^{N-1} e^{-i \frac{2\pi}{N} (k^{'}b - ka)}\vec{e}_k \cdot \vec{e}_{k^{'}} = \frac{1}{N}\sum_{k = 0}^{N-1} e^{-i \frac{2\pi}{N}k (b - a)} \xRightarrow{a=b}
+    \vec{u}_a \cdot \vec{u}_b = \frac{1}{N}\sum_{k = 0}^{N-1} e^{-i \frac{2\pi}{N}k \cdot 0} = 1
+\end{equation*}
+\begin{equation*}
+    \xRightarrow{a\neq b} \vec{u}_a \cdot \vec{u}_b = \frac{1}{N}\sum_{k = 0}^{N-1} \left(e^{-i \frac{2\pi}{N} (b - a)}\right)^k = \frac{1}{N} \frac{1 - e^{-i\frac{2\pi}{N}(b-a)N}}{1 - e^{-i\frac{2\pi}{N}(b-a)}} = 0
+\end{equation*}
+
+This shows that $\{\vec{u}_j\}$ is an orthonormal basis. So, the change of basis matrix for the DFT is 
+
+\begin{equation}
+    U = \left(\vec{u}_0, ..., \vec{u}_{N-1}\right) = \frac{1}{\sqrt{N}}\left[e^{-i\frac{2\pi}{N}jk}\right]_{j,k = 0}^{N-1}
+    \label{change_basis_dft}
+\end{equation}
+
+It is straightforward to see that $U$ is symmetric and unitary. Also, by (\ref{idft_eq}), we determine that the IDFT is described by $U^\dagger$.
+
+\begin{equation*}
+    e^{-i\frac{2\pi}{N}jk} = e^{-i\frac{2\pi}{N}kj} \implies U^\intercal = U, \ \ U^\dagger U = \left[\vec{u}_j \cdot \vec{u}_k\right]_{j,k=0}^{N-1} = \mathbb{I}
+\end{equation*}
+
+

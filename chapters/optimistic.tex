@@ -1,0 +1,162 @@
+\newpage
+\section{Optimistic quantum circuits}
+Often times, in practice, a general algorithm will receive certain inputs more frequently than others on average. For example, this can correspond to realistic inputs in the context of what that algorithm is solving. In that case, it can be profitable to optimize the algorithm specifically for those realistic inputs in order to have a solution that works really well for the average case. Of course, such an adaptation won't perform as great as the general solution for extreme cases. But, since they aren't as relevant as the common inputs, this sacrifice is justified. Naturally, this same idea can be applied to quantum algorithms and one way it occurs is through optimistic quantum circuits. The objective of these quantum circuits is to perform a good approximation of some operation on average.   
+
+\subsection{Definitions}
+Given some unitary operation $\mathcal{U}$ and a quantum circuit $\mathcal{C}$ that implements $\tilde{\mathcal{U}}$ on a Hilbert space $\mathcal{H}$, $\mathcal{C}$ is an optimistic circuit for $\mathcal{U}$ with error bound $\epsilon$ if, for any complete set of basis state $\left\{\ket{\phi_j}\right\}$ of $\mathcal{H}$,
+
+\begin{equation}
+    \frac{1}{\text{dim } \mathcal{H}}\sum_{i}\abs{\tilde{\mathcal{U}}\ket{\phi_j} - \mathcal{U}\ket{\phi_j}}^2 < \epsilon
+    \label{def_1_optimistic}
+\end{equation}
+
+In other words, this definition states that, on average for any complete basis, the norm of the error vector between the regular operation $\mathcal{U}$ and the optimistic operation $\tilde{\mathcal{U}}$ most be smaller than $\epsilon$. So, if \ref{def_1_optimistic} is satisfied, $\tilde{\mathcal{U}}$ will be a good approximation of $\mathcal{U}$ on average. Another equivalent definition, which is basis independent and thus easier to work with, is the following.
+
+\begin{equation}
+    \frac{\norm{\tilde{\mathcal{U}}- \mathcal{U}}^2_F}{\text{dim } \mathcal{H}} \leq \epsilon
+    \label{def_2_optimistic}
+\end{equation}
+
+where $\norm{X}^2_F = \text{Tr}\left[X^{\dagger}X\right] = \sum_{i}\sum_{j}\abs{x_{i,j}}^2$ is the Frobenius norm squared. In a way, the Frobenius norm gives a number which indicates how much a matrix would "stretch" a vector if the matrix was applied to it. So, when dividing it by the dimension of the Hilbert space, we get how much each component is stretched on average. In the context of an optimistic circuit, for it to be a good approximation of $\mathcal{U}$ on average, the average stretch caused by their difference has to be smaller than some error $\epsilon$, which yields \ref{def_2_optimistic}.   
+
+\subsection{Bad subspace}
+Consider the subspace $\mathcal{H}_{\text{bad}}\subseteq \mathcal{H}$ with its projector $\Pi_{\text{bad}}$ corresponding to the subspace where the error $\mu = \norm{\left(\tilde{\mathcal{U}}-\mathcal{U}\right)\Pi_{\text{bad}}}^2_F/\text{dim }\mathcal{H}_{\text{bad}}$ is greater than $\epsilon$. This corresponds to the cases where the approximation resulting from the optimistic circuit is not good enough (not the average cases). Then,
+
+\begin{equation*}
+    \epsilon \geq \frac{\norm{\tilde{\mathcal{U}}-\mathcal{U}}^2_F}{\text{dim }\mathcal{H}} \geq \frac{\norm{\left(\tilde{\mathcal{U}}-\mathcal{U}\right)\Pi_{\text{bad}}}^2_F}{\text{dim }\mathcal{H}} = \frac{\text{dim }\mathcal{H}_{\text{bad}}}{\text{dim }\mathcal{H}} \frac{\norm{\left(\tilde{\mathcal{U}}-\mathcal{U}\right)\Pi_{\text{bad}}}^2_F}{\text{dim }\mathcal{H}_{\text{bad}}} = \frac{\text{dim }\mathcal{H}_{\text{bad}}}{\text{dim }\mathcal{H}} \mu
+\end{equation*}
+\begin{equation}
+    \implies \text{dim }\mathcal{H}_{\text{bad}} \leq \text{dim }\mathcal{H} \cdot \frac{\epsilon}{\mu}
+    \label{bad_subspace}
+\end{equation}
+
+This tells us that the dimension of $\mathcal{H}_{\text{bad}}$ is inversely proportional to how bad the error is for a given $\epsilon$ and $\text{dim } \mathcal{H}$.
+
+\subsection{Optimistic QFT}
+To build an optimistic QFT, we first need to derive an alternative approximate QFT than the one where we truncate phase gates.
+
+\subsubsection{Alternative approximate QFT}
+We start by copying the definition of the QFT.
+
+\begin{equation*}
+    \ket{\phi(x)} = \text{QFT}\ket{x} = \frac{1}{\sqrt{2^n}}\sum_{y=0}^{2^n-1}e^{i\frac{2\pi}{2^n}xy}\ket{y} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{i\frac{2\pi}{2^n}x2^l}\ket{1}}{\sqrt{2}}\right)
+\end{equation*}
+
+Then, we will need to split the register on $n$ qubits into blocks of $m = \mathcal{O}\left(\log\left(\frac{n}{\epsilon}\right)\right)$ qubits. For simplicity, we assume that $m|n$ and we denote the integer on $m$ bits for the $j$-th block as $X_j$ so that
+
+\begin{equation}
+    x = \sum_{j=0}^{\frac{n}{m}-1}2^{mj}X_j = \sum_{j=0}^{\frac{n}{m}-1}2^{mj}\sum_{k=0}^{m-1}2^kx_{k+mj}
+    \label{block}
+\end{equation}
+
+So, in terms of the blocks, the QFT is rewritten as 
+
+\begin{equation*}
+    \ket{\phi(x)} = \bigotimes_{l=0}^{n-1}\left(\frac{\ket{0} + e^{i\frac{2\pi}{2^n}x2^l}\ket{1}}{\sqrt{2}}\right) = \bigotimes_{j=0}^{\frac{n}{m}-1}\left[\bigotimes_{l=0}^{m-1}\left(\frac{\ket{0} + e^{i\frac{2\pi}{2^n}x 2^{mj+l}}\ket{1}}{\sqrt{2}}\right)\right] = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}x Y_j 2^{mj}}\ket{Y_j}\right]
+\end{equation*}
+\begin{equation*}
+    = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}\sum_{k=0}^{\frac{n}{m}-1}2^{mk} 2^{mj}X_kY_j}\ket{Y_j}\right] = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}\sum_{k=0}^{\frac{n}{m}-1}2^{m(k+j)}X_kY_j}\ket{Y_j}\right]
+\end{equation*}
+
+In the exponential, some terms of the sum will vanish because $e^{i\frac{2\pi}{2^n}2^{m(k+j)}} = 1$ when $m(k+j) \geq n$. We also rearrange the sum.
+
+\begin{equation*}
+    \ket{\phi(x)} = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}\sum_{k=0}^{\frac{n}{m}-1}2^{m(k+j)}X_kY_j}\ket{Y_j}\right] = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}\sum_{k=0}^{\frac{n}{m}-1-j}2^{m(k+j)}X_kY_j}\ket{Y_j}\right]
+\end{equation*}
+\begin{equation*}
+    = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^n}\sum_{k=j}^{\frac{n}{m}-1}2^{n-m-km+mj}X_{\frac{n}{m}-1-k}Y_j}\ket{Y_j}\right] = \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^m}\sum_{k=j}^{\frac{n}{m}-1}X_{\frac{n}{m}-1-k}Y_j/2^{m(k-j)}}\ket{Y_j}\right] 
+\end{equation*}
+
+By using \ref{diff_inequality} and \ref{diff_phase}, we know that we get an $\epsilon$ close general approximation (on all inputs) by only keeping the first two terms of the sum in the exponential. This truncation is allowed due to our choice for $m$ and it reduces the state to
+
+\begin{equation}
+    \ket{\phi(x)} \approx \bigotimes_{j=0}^{\frac{n}{m}-1} \left[\frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^m}Y_j(X_{\frac{n}{m}-1-j} + \frac{X_{\frac{n}{m}-2-j}}{2^m})}\ket{Y_j}\right]
+    \label{alternative_approx_qft}
+\end{equation}
+
+So, the state in each block is 
+
+\begin{equation}
+    \ket{\phi(x)}_j = \frac{1}{\sqrt{2}^m}\sum_{Y_j=0}^{2^m-1}e^{i\frac{2\pi}{2^m}Y_j(X_{\frac{n}{m}-1-j} + \frac{X_{\frac{n}{m}-2-j}}{2^m})}\ket{Y_j}
+    \label{alternative_approx_qft_block}
+\end{equation}
+
+To have a quantum circuit that implements \ref{alternative_approx_qft}, we will use a sequence of QFTs on $m$ qubits and phase gates on $2m$ qubits. Applying $\text{QFT}_m$ on the block $\ket{X_{j}}$ gives by definition 
+
+\begin{equation*}
+    \text{QFT}_m\ket{X_{j}} = \frac{1}{\sqrt{2}^m}\sum_{Y_{j}=0}^{2^m-1}e^{i\frac{2\pi}{2^m}X_{j}Y_{j}}\ket{Y_{j}}
+\end{equation*}
+
+After that, we would like to add a phase
+
+\begin{equation*}
+    e^{i\frac{2\pi}{2^{2m}}X_{j-1}Y_{j}} = e^{i\frac{2\pi}{2^{2m}}\sum_{k=0}^{m-1}2^kx_{k+m(j-1)}\sum_{l=0}^{m-1}2^ly_{l + mj}} = \prod_{k,l=0}^{m-1}e^{i\frac{2\pi}{2^{2m-k-l}}x_{k+m(j-1)}y_{l+mj}}    
+\end{equation*}
+
+This can be obtained by the following subroutine which uses controlled phase gates
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.2]{images/phase_circuit.jpg}
+    \caption{Subroutine for adding the phase $e^{i\frac{2\pi}{2^{2m}}X_{j-1}Y_{j}}$}
+    \label{phase_circuit}
+\end{figure}
+
+and yields the state 
+
+\begin{equation*}
+    \frac{1}{\sqrt{2}^m}\sum_{Y_{j}=0}^{2^m-1}e^{i\frac{2\pi}{2^m}Y_{j}\left(X_{j} + \frac{X_{j-1}}{2^m}\right)}\ket{Y_{j}}
+\end{equation*}
+
+If we repeat this process for all blocks starting from the last one up to the top, we get the circuit
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.18]{images/almost_approx_circuit.jpg}
+    \caption{Circuit that almost implements \ref{alternative_approx_qft}}
+    \label{almost_approx_circuit}
+\end{figure}
+
+which outputs the state
+
+\begin{equation*}
+    \bigotimes_{j=0}^{\frac{n}{m}-1}\left[\frac{1}{\sqrt{2}^m}\sum_{Y_{j}=0}^{2^m-1}e^{i\frac{2\pi}{2^m}Y_{j}\left(X_{j} + \frac{X_{j-1}}{2^m}\right)}\ket{Y_{j}}\right]
+\end{equation*}
+
+This is close to \ref{alternative_approx_qft} and, to obtain this equation, the last step is to reverse the circuit.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics*[scale=0.18]{images/approx_circuit.jpg}
+    \caption{Circuit that implements \ref{alternative_approx_qft}}
+    \label{approx_circuit}
+\end{figure}
+
+\subsubsection{Derivation for the optimistic QFT}
+...
+
+
+
+
+
+% The circuit that implements \ref{alternative_approx_qft} is the following.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics*[scale=0.55]{images/alternative_approx_qft.png}
+%     \caption{Quantum circuit for the alternative approximate QFT}
+%     \label{alternative_approx_qft_circuit}
+% \end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
